@@ -6,14 +6,32 @@ const cookie = require('cookie');
 const nonce = require('nonce')();
 const querystring = require('querystring');
 const request = require('request-promise');
+const Shopify = require('shopify-api-node');
 
 const apiKey = process.env.SHOPIFY_API_KEY;
 const apiSecret = process.env.SHOPIFY_API_SECRET;
-const scopes = 'read_products';
+const accessToken = process.env.SHOPIFY_API_SECRET;
+
+const scopes = 'read_products, read_orders';
 const forwardingAddress = "https://56c2caab.ngrok.io"; // Replace this with your HTTPS Forwarding address
 
 app.get('/', (req, res) => {
-  res.send('Hello World!');
+  const shopRequestUrl = 'https://test-shopshop.myshopify.com/admin/orders.json';
+  console.log('Access token:', accessToken);
+  const shopRequestHeaders = {
+    'X-Shopify-Access-Token': '57ad9d34636ae8090c2e29466b2091bf',
+  };
+
+  request.get(shopRequestUrl, { headers: shopRequestHeaders })
+  .then((shopResponse) => {
+    console.log(shopResponse);
+    return res.status(200).end(shopResponse);
+  })
+  .catch((error) => {
+    console.log(error);    
+    return res.status(error.statusCode).send(error.error.error_description);
+  });
+  //res.send(accessToken);
 });
 
 app.listen(3000, () => {
@@ -87,6 +105,7 @@ app.get('/shopify/callback', (req, res) => {
       const accessToken = accessTokenResponse.access_token;
       // DONE: Use access token to make API call to 'shop' endpoint
       const shopRequestUrl = 'https://' + shop + '/admin/shop.json';
+      console.log('Access token:', accessToken);
       const shopRequestHeaders = {
         'X-Shopify-Access-Token': accessToken,
       };
