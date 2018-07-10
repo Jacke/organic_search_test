@@ -17,8 +17,8 @@ class App extends Component {
       <div>
         <MuiThemeProvider muiTheme={theme}>
           <div>
-            <Header addTodo={actions.addTodo}/>
-            <MainSection todos={todos} actions={actions}/>
+            <Header/>
+            <MainSection />
           </div>
         </MuiThemeProvider>
       </div>
@@ -26,21 +26,14 @@ class App extends Component {
   }
 }
 
-App.propTypes = {
-  todos: PropTypes.array.isRequired,
-  actions: PropTypes.object.isRequired
-};
+App.propTypes = {};
 
 function mapStateToProps(state) {
-  return {
-    todos: state.todos
-  };
+  return {};
 }
 
 function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(TodoActions, dispatch)
-  };
+  return {};
 }
 
 export default connect(
