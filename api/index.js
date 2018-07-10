@@ -7,9 +7,11 @@ const nonce = require('nonce')();
 const querystring = require('querystring');
 const request = require('request-promise');
 const Shopify = require('shopify-api-node');
+const cors = require('cors')
 
 const apiKey = process.env.SHOPIFY_API_KEY;
 const apiSecret = process.env.SHOPIFY_API_SECRET;
+const SEC = 5; // Seconds for storing queries
 var accessToken = process.env.ACCESS_TOKEN;
 
 const scopes = 'read_products, read_orders';
@@ -19,20 +21,31 @@ const shopify = new Shopify({
   accessToken: accessToken
 });
 
+var PERSISTENCE_LAYER = []
+var PERSISTENCE_UPDATED = undefined;
 
+api.use(cors());
 api.get('/', (req, res) => res.redirect('/api/v1/orders'));
 
 api.get('/api/v1/orders', (req, res) => {
-  return shopify.order.list({ limit: 5 })
-  .then(orders => {
-    console.log(orders)
-    return res.status(200).end( JSON.stringify(orders , null, 2) );
-  }
-  )
-  .catch(err => 
-    console.log(err)//res.redirect('/shopify')
-  );
+  if (PERSISTENCE_UPDATED == undefined || ((Math.floor(Date.now() / 1000)) - PERSISTENCE_UPDATED) > SEC) {
+    return shopify.order.list({ limit: 100 })
+    .then(orders => {
+      console.log(orders)
+      // Keep order persistence
+      PERSISTENCE_LAYER = orders;
+      PERSISTENCE_UPDATED = Math.floor(Date.now() / 1000);
 
+      return res.status(200).end( JSON.stringify(orders , null, 2) );
+    }
+    )
+    .catch(err => 
+      console.log(err)//res.redirect('/shopify')
+    );
+  } else {
+    console.log('persistence');
+    return res.status(200).end( JSON.stringify(PERSISTENCE_LAYER , null, 2) );;
+  }
 });
 
 api.get('/shopify', (req, res) => {
