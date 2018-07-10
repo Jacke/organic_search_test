@@ -10,16 +10,16 @@ const Shopify = require('shopify-api-node');
 
 const apiKey = process.env.SHOPIFY_API_KEY;
 const apiSecret = process.env.SHOPIFY_API_SECRET;
-const accessToken = process.env.SHOPIFY_API_SECRET;
+var accessToken = process.env.ACCESS_TOKEN;
 
 const scopes = 'read_products, read_orders';
 const forwardingAddress = "https://56c2caab.ngrok.io"; // Replace this with your HTTPS Forwarding address
 
-app.get('/', (req, res) => {
+app.get('/api/v1/orders', (req, res) => {
   const shopRequestUrl = 'https://test-shopshop.myshopify.com/admin/orders.json';
   console.log('Access token:', accessToken);
   const shopRequestHeaders = {
-    'X-Shopify-Access-Token': '57ad9d34636ae8090c2e29466b2091bf',
+    'X-Shopify-Access-Token':  accessToken,
   };
 
   request.get(shopRequestUrl, { headers: shopRequestHeaders })
@@ -29,31 +29,20 @@ app.get('/', (req, res) => {
   })
   .catch((error) => {
     console.log(error);    
-    return res.status(error.statusCode).send(error.error.error_description);
+    return res.redirect('/shopify')
   });
-  //res.send(accessToken);
-});
-
-app.listen(3000, () => {
-  console.log('Example app listening on port 3000!');
 });
 
 app.get('/shopify', (req, res) => {
-  const shop = req.query.shop;
-  if (shop) {
-    const state = nonce();
-    const redirectUri = forwardingAddress + '/shopify/callback';
-    const installUrl = 'https://' + shop +
-      '/admin/oauth/authorize?client_id=' + apiKey +
-      '&scope=' + scopes +
-      '&state=' + state +
-      '&redirect_uri=' + redirectUri;
-
-    res.cookie('state', state);
-    res.redirect(installUrl);
-  } else {
-    return res.status(400).send('Missing shop parameter. Please add ?shop=your-development-shop.myshopify.com to your request');
-  }
+  const state = nonce();
+  const redirectUri = forwardingAddress + '/shopify/callback';
+  const installUrl = 'https://' + 'test-shopshop.myshopify.com' +
+    '/admin/oauth/authorize?client_id=' + apiKey +
+    '&scope=' + scopes +
+    '&state=' + state +
+    '&redirect_uri=' + redirectUri;
+  res.cookie('state', state);
+  return res.redirect(installUrl);
 });
 
 
@@ -102,21 +91,8 @@ app.get('/shopify/callback', (req, res) => {
 
     request.post(accessTokenRequestUrl, { json: accessTokenPayload })
     .then((accessTokenResponse) => {
-      const accessToken = accessTokenResponse.access_token;
-      // DONE: Use access token to make API call to 'shop' endpoint
-      const shopRequestUrl = 'https://' + shop + '/admin/shop.json';
-      console.log('Access token:', accessToken);
-      const shopRequestHeaders = {
-        'X-Shopify-Access-Token': accessToken,
-      };
-
-      request.get(shopRequestUrl, { headers: shopRequestHeaders })
-      .then((shopResponse) => {
-        res.status(200).end(shopResponse);
-      })
-      .catch((error) => {
-        res.status(error.statusCode).send(error.error.error_description);
-      });
+      accessToken = accessTokenResponse;
+      return res.redirect('/');
     })
     .catch((error) => {
       res.status(error.statusCode).send(error.error.error_description);
@@ -125,4 +101,9 @@ app.get('/shopify/callback', (req, res) => {
   } else {
     res.status(400).send('Required parameters missing');
   }
+});
+
+
+app.listen(3000, () => {
+  console.log('Example app listening on port 3000!');
 });
