@@ -1,6 +1,6 @@
 const dotenv = require('dotenv').config();
 const express = require('express');
-const app = express();
+const api = express();
 const crypto = require('crypto');
 const cookie = require('cookie');
 const nonce = require('nonce')();
@@ -14,26 +14,28 @@ var accessToken = process.env.ACCESS_TOKEN;
 
 const scopes = 'read_products, read_orders';
 const forwardingAddress = "https://56c2caab.ngrok.io"; // Replace this with your HTTPS Forwarding address
-
-app.get('/api/v1/orders', (req, res) => {
-  const shopRequestUrl = 'https://test-shopshop.myshopify.com/admin/orders.json';
-  console.log('Access token:', accessToken);
-  const shopRequestHeaders = {
-    'X-Shopify-Access-Token':  accessToken,
-  };
-
-  request.get(shopRequestUrl, { headers: shopRequestHeaders })
-  .then((shopResponse) => {
-    console.log(shopResponse);
-    return res.status(200).end(shopResponse);
-  })
-  .catch((error) => {
-    console.log(error);    
-    return res.redirect('/shopify')
-  });
+const shopify = new Shopify({
+  shopName: 'test-shopshop',
+  accessToken: accessToken
 });
 
-app.get('/shopify', (req, res) => {
+
+api.get('/', (req, res) => res.redirect('/api/v1/orders'));
+
+api.get('/api/v1/orders', (req, res) => {
+  return shopify.order.list({ limit: 5 })
+  .then(orders => {
+    console.log(orders)
+    return res.status(200).end( JSON.stringify(orders , null, 2) );
+  }
+  )
+  .catch(err => 
+    console.log(err)//res.redirect('/shopify')
+  );
+
+});
+
+api.get('/shopify', (req, res) => {
   const state = nonce();
   const redirectUri = forwardingAddress + '/shopify/callback';
   const installUrl = 'https://' + 'test-shopshop.myshopify.com' +
@@ -47,7 +49,7 @@ app.get('/shopify', (req, res) => {
 
 
 
-app.get('/shopify/callback', (req, res) => {
+api.get('/shopify/callback', (req, res) => {
   const { shop, hmac, code, state } = req.query;
   const stateCookie = cookie.parse(req.headers.cookie).state;
 
@@ -104,6 +106,6 @@ app.get('/shopify/callback', (req, res) => {
 });
 
 
-app.listen(3000, () => {
-  console.log('Example app listening on port 3000!');
+api.listen(3000, () => {
+  console.log('Example api listening on port 3000!');
 });
